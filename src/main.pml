@@ -2,18 +2,28 @@
 * \author Коршков А. А. (3343);Жучков О.Д. (3343)
 * Вариант 9
 */ 
-byte entry = 1;// Семафор для входа в критическую секцию
-byte readerSem = 0;// Семафор для читателей
-byte writerSem = 0;// Семафор для писателей
 
-int delayedReaders = 0;// Количество приостановленных читателей
-int delayedWriters = 0;// Количество приостановленных писателей
+// Семафор для входа в критическую секцию
+byte entry = 1;
+// Семафор для читателей
+byte readerSem = 0;
+// Семафор для писателей
+byte writerSem = 0;
 
-int readers = 0;// Количество активных читателей
-int writers = 0;// Количество активных писателей
+// Количество приостановленных читателей
+int delayedReaders = 0;
+// Количество приостановленных писателей
+int delayedWriters = 0;
 
-#define signal(sem) (sem = 1)// Сигнал для семафора
-#define wait(sem) (sem = 0)// Ожидание для семафора
+// Количество активных читателей
+int readers = 0;
+// Количество активных писателей
+int writers = 0;
+
+// Сигнал для семафора
+#define signal(sem) (sem = 1)
+// Ожидание для семафора
+#define wait(sem) (sem = 0)
 
 // Подпрограмма, которая выполняется после каждой начальной и конечной операций.
 inline SignalProcess() {
@@ -69,12 +79,12 @@ inline EndWrite() {
 
 // Процесс "Читатель"
 proctype Reader() {
-	printf("Hello, I'm a Reader\n");
+	printf("Hello,I'm a Reader\n");
 };
 
 // Процесс "Писатель"
 proctype Writer() {
-	printf("Hello, I'm a Writer\n");
+	printf("Hello,I'm a Writer\n");
 }
 
 // Инициализирующий процесс
@@ -84,7 +94,9 @@ init {
 	run Writer();
 }
 
-// ltl свойства
+// Проверка корректности
+
+// Инварианты
 
 // Инвариант для правильности алгоритма: если есть писатели, то их ровно один и нет читателей
 #define INV1 ((writers > 0) -> (writers == 1) && (readers == 0))
@@ -92,5 +104,10 @@ init {
 // Разделённая двоичная семафора
 #define INV2 ((0 <= entry + readerSem + writerSem) && (entry + readerSem + writerSem <= 1))
 
+// ltl свойства
+
+// Свойство 1: всегда выполняется инвариант INV1
 ltl p1 { [] INV1 }
+
+// Свойство 2: всегда выполняется инвариант INV2
 ltl p2 { [] INV2 }
