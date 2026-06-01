@@ -17,9 +17,9 @@ byte readerSem = 0;
 byte writerSem = 0;
 
 // Количество приостановленных читателей
-byte delayedReaders = 0;
+int delayedReaders = 0;
 // Количество приостановленных писателей
-byte delayedWriters = 0;
+int delayedWriters = 0;
 
 // Количество активных читателей
 byte readers = 0;
@@ -30,21 +30,21 @@ byte writers = 0;
 
 // Сигнал для семафора
 inline Signal(sem) {
-	sem < 1 -> sem++;
+	sem++
 }
 
 // Ожидание для семафора
 inline Wait(sem) {
-	sem > 0 -> sem--;
+	atomic { sem > 0 -> sem-- }
 }
 
 // Подпрограмма, которая выполняется после каждой начальной и конечной операций.
 inline SignalProcess() {
 	if
-	:: (writers > 0 || delayedReaders > 0) -> 
+	:: (writers == 0 && delayedReaders > 0) ->  //в учебнике (writers == 0 || delayedReaders > 0), предполагаемо опечатка
 		delayedReaders--;
 		Signal(readerSem);
-	:: (readers == 0 && writers == 0 && delayedWriters > 0) -> 
+	:: (readers == 0 && writers == 0 && delayedWriters > 0 && delayedReaders == 0) -> //delayedReaders == 0 добавлен для включения инверсии первого условия (чтобы не делать вложенные if)
 		delayedWriters--;
 		Signal(writerSem);
 	:: else -> Signal(entry);
@@ -59,6 +59,7 @@ inline StartRead() {
 		delayedReaders++;
 		Signal(entry);
 		Wait(readerSem);
+	:: else -> 
 	fi
 	readers++;
 	SignalProcess();
@@ -79,6 +80,7 @@ inline StartWrite() {
 		delayedWriters++;
 		Signal(entry);
 		Wait(writerSem);
+	:: else -> 
 	fi
 	writers++;
 	SignalProcess();
@@ -103,7 +105,7 @@ inline DropDelayedReaders() {
 }
 
 // Процесс "Читатель"
-proctype Reader() {
+proctype Reader(byte rid) {
 	printf("Hello,I'm a Reader\n");
 	do
 	:: true -> 
@@ -111,7 +113,7 @@ proctype Reader() {
 		StartRead();
 // Чтение данных
 		
-		printf("Reader read data. Readers: %d,Writers: %d\n",readers,writers);
+		printf("Reader %d read data. Readers: %d,Writers: %d\n",rid,readers,writers);
 		
 // Нельзя одновременно писать и читать
 		assert(writers == 0);
@@ -122,7 +124,7 @@ proctype Reader() {
 };
 
 // Процесс "Писатель"
-proctype Writer() {
+proctype Writer(byte wid) {
 	printf("Hello,I'm a Writer\n");
 	do
 	:: true -> 
@@ -134,7 +136,7 @@ proctype Writer() {
 // Нельзя одновременно писать и читать
 		assert(writers == 1 && readers == 0);
 		
-		printf("Writer wrote data. Readers: %d,Writers: %d\n",readers,writers);
+		printf("Writer %d wrote data. Readers: %d,Writers: %d\n",wid,readers,writers);
 		
 		EndWrite();
 // Конец секции записи
@@ -147,7 +149,7 @@ init {
 	byte i = 0;
 	do
 	:: i < READERS_COUNT -> 
-		run Reader();
+		run Reader(i);
 		i++;
 	:: else -> break;
 	od;
@@ -156,7 +158,7 @@ init {
 	byte j = 0;
 	do
 	:: j < WRITERS_COUNT -> 
-		run Writer();
+		run Writer(j);
 		j++;
 	:: else -> break;
 	od;
@@ -184,4 +186,4 @@ ltl p1 { [] INV1 }
 ltl p2 { [] INV2 }
 
 // Свойство 3: Писать может только один писатель
-ltl one_writer { [] INV3 }
+ltl one_writer { [] INV3 }  // Следствие из p1, думаю, можно убрать
