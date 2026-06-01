@@ -127,3 +127,5 @@ ltl correct { [] safe_readers_writers }
 #define split_binary_semaphor ((0 <= entry + readerSem + writerSem) && (entry + readerSem + writerSem <= 1))
 ltl semaphor { [] split_binary_semaphor }
 
+// Если производится запись и есть приостановленные читатели, в будущем все эти читатели получат доступ
+ltl reader_priority { [] ((writers > 0 && delayedReaders > 0) -> <> (readers > 0 && delayedReaders == 0)) }
