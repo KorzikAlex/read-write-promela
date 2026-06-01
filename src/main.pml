@@ -84,7 +84,7 @@ proctype Reader(byte rid) {
 	do
 	:: true -> 
 		StartRead();
-		printf("%d: read %d (Readers: %d, Writers: %d)\n",rid,shared_memory,readers,writers);
+		printf("\n%d: read %d (Readers: %d, Writers: %d)",rid,shared_memory,readers,writers);
 		EndRead();
 	od;
 };
@@ -93,8 +93,8 @@ proctype Writer(byte wid) {
 	do
 	:: true -> 
 		StartWrite();
-		shared_memory = wid
-		printf("%d: write %d (Readers: %d, Writers: %d)\n",wid,shared_memory,readers,writers);
+		shared_memory = wid;
+		printf("\n%d: write %d (Readers: %d, Writers: %d)",wid,shared_memory,readers,writers);
 		EndWrite();
 	od;
 }
@@ -120,12 +120,10 @@ init {
 
 
 // Инвариант для правильности алгоритма (стр. 143 Бен-Ари): если есть писатели, то он ровно один и нет читателей
-#define safe_readers_writers ((writers > 0) -> (writers == 1) && (readers == 0))
-ltl correct { [] safe_readers_writers }
+ltl correct { [] ((writers > 0) -> (writers == 1) && (readers == 0)) }
 
 // Инвариант разделенного бинарного семафора (стр. 143 Бен-Ари): сумма S.L не превышает единицы
-#define split_binary_semaphor ((0 <= entry + readerSem + writerSem) && (entry + readerSem + writerSem <= 1))
-ltl semaphor { [] split_binary_semaphor }
+ltl semaphor { [] ((0 <= entry + readerSem + writerSem) && (entry + readerSem + writerSem <= 1)) }
 
 // Если производится запись и есть приостановленные читатели, в будущем все эти читатели получат доступ
 ltl reader_priority { [] ((writers > 0 && delayedReaders > 0) -> <> (readers > 0 && delayedReaders == 0)) }
